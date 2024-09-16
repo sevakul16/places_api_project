@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Places from "./Places.jsx";
 import ErrorMessage from "./ErrorMessage.jsx";
+import { sortPlacesByDistance } from "../loc.js";
+import { fetchAvailablePlaces } from "../http.js";
 
 export default function AvailablePlaces({ onSelectPlace }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -11,18 +13,20 @@ export default function AvailablePlaces({ onSelectPlace }) {
     setIsLoading(true);
     async function fetchPlaces() {
       try {
-        const response = await fetch("http://localhost:3000/places");
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch places.");
-        }
-        setAvailablePlaces(data.places);
+        const places = await fetchAvailablePlaces();
+        navigator.geolocation.getCurrentPosition((position) => {
+          const sortedPlaces = sortPlacesByDistance(
+            places,
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          setAvailablePlaces(sortedPlaces);
+          setIsLoading(false);
+        });
       } catch (error) {
         setError({ message: error.message || "An unknown error occurred." });
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     }
 
     fetchPlaces();
